@@ -13,6 +13,7 @@ import Prelude
 main = do
   example $ EVar "x"
   example $ EAbs "x" (EVar "x")
+  example $ EAbs "x" (EAbs "y" (EVar "x"))
   example $ EAbs "x" (EApp (EVar "x") (EVar "x"))
   example $ EApp (EAbs "x" (EVar "x")) (EAbs "x" (EVar "x"))
   example $ ELet "x" (EAbs "x" (EVar "x")) (EApp (EVar "x") (EVar "x"))
