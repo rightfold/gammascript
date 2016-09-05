@@ -11,12 +11,16 @@ import GammaScript.Type (prettyScheme)
 import Prelude
 
 main = do
-  example $ EVar "x"
-  example $ EAbs "x" (EVar "x")
-  example $ EAbs "x" (EAbs "y" (EVar "x"))
-  example $ EAbs "x" (EApp (EVar "x") (EVar "x"))
-  example $ EApp (EAbs "x" (EVar "x")) (EAbs "x" (EVar "x"))
-  example $ ELet "x" (EAbs "x" (EVar "x")) (EApp (EVar "x") (EVar "x"))
+  let x = EVar "x"
+      f = EVar "f"
+
+  example $ x
+  example $ EAbs "x" x
+  example $ EAbs "x" (EAbs "y" x)
+  example $ EAbs "f" (EApp (EAbs "x" (EApp f (EApp x x))) (EAbs "x" (EApp f (EApp x x))))
+  example $ EAbs "x" (EApp x x)
+  example $ EApp (EAbs "x" x) (EAbs "x" x)
+  example $ ELet "x" (EAbs "x" x) (EApp x x)
 
   where example e = do
           log $ prettyExpr e
