@@ -49,7 +49,15 @@ composeSubst s1 s2 = map (subst s1) s2 <> s1
 
 prettyType :: Type -> String
 prettyType (TVar n) = n
-prettyType (TFun τ σ) = "(" <> prettyType τ <> ") → (" <> prettyType σ <> ")"
+prettyType (TFun τ σ) = τ' <> " → " <> σ'
+  where τ' | safeL τ   =        prettyType τ
+           | otherwise = "(" <> prettyType τ <> ")"
+        σ' | safeR σ   =        prettyType σ
+           | otherwise = "(" <> prettyType σ <> ")"
+        safeL (TVar _) = true
+        safeL (TFun _ _) = false
+        safeR (TVar _) = true
+        safeR (TFun _ _) = true
 
 prettyScheme :: Scheme -> String
 prettyScheme (Scheme quantis τ)

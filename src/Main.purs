@@ -21,6 +21,7 @@ main = do
   example $ EAbs "x" (EApp x x)
   example $ EApp (EAbs "x" x) (EAbs "x" x)
   example $ ELet "x" (EAbs "x" x) (EApp x x)
+  example $ (EAbs "f" (EAbs "x" (EApp f (EApp f x))))
 
   where example e = do
           log $ prettyExpr e
