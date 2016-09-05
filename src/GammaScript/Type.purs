@@ -1,0 +1,57 @@
+module GammaScript.Type
+( Type(..)
+, Scheme(..)
+
+, class Subst
+, freeTVars
+, subst
+, composeSubst
+
+, prettyType
+, prettyScheme
+) where
+
+import Data.Array as Array
+import Data.Foldable (foldr)
+import Data.Map (Map)
+import Data.Map as Map
+import Data.Maybe (fromMaybe)
+import Data.Set (Set)
+import Data.Set as Set
+import Data.String as String
+import Prelude
+
+
+data Type
+  = TVar String
+  | TFun Type Type
+
+data Scheme = Scheme (Set String) Type
+
+
+class Subst a where
+  freeTVars :: a -> Set String
+  subst     :: Map String Type -> a -> a
+
+instance substType :: Subst Type where
+  freeTVars (TVar n)   = Set.singleton n
+  freeTVars (TFun τ σ) = freeTVars τ <> freeTVars σ
+  subst s (TVar n)   = fromMaybe (TVar n) (Map.lookup n s)
+  subst s (TFun τ σ) = TFun (subst s τ) (subst s σ)
+
+instance substScheme :: Subst Scheme where
+  freeTVars (Scheme quantis τ) = freeTVars τ `Set.difference` quantis
+  subst s (Scheme quantis τ) = Scheme quantis (subst (foldr Map.delete s quantis) τ)
+
+composeSubst :: Map String Type -> Map String Type -> Map String Type
+composeSubst s1 s2 = map (subst s1) s2 <> s1
+
+
+prettyType :: Type -> String
+prettyType (TVar n) = n
+prettyType (TFun τ σ) = "(" <> prettyType τ <> ") → (" <> prettyType σ <> ")"
+
+prettyScheme :: Scheme -> String
+prettyScheme (Scheme quantis τ)
+  | Set.isEmpty quantis = prettyType τ
+  | otherwise = "∀ " <> String.joinWith " " (Array.fromFoldable quantis) <> ". " <> prettyType τ
