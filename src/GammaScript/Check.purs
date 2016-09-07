@@ -53,7 +53,7 @@ checkError msg = do
   where entry e = "\nin " <> prettyExpr e
 
 localStack :: forall a r. Cofree Expr a -> Check r -> Check r
-localStack e chk = local (\r -> r { stack = void e : r.stack}) chk
+localStack e chk = local (\r -> r {stack = void e : r.stack}) chk
 
 
 type Γ = Map String Scheme
@@ -64,7 +64,7 @@ generalize γ τ = Scheme qs τ
   where qs = freeTVars τ `Set.difference` fold (map freeTVars γ)
 
 instantiate :: Scheme -> Check Type
-instantiate (Scheme quantis τ)= do
+instantiate (Scheme quantis τ) = do
   let quantis' = List.fromFoldable quantis
   unis <- traverse (const freshTVar) quantis'
   pure $ subst (Map.fromList (List.zip quantis' unis)) τ
