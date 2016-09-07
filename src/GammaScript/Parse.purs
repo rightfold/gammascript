@@ -21,7 +21,7 @@ topLevel = defer \_ -> TopLevel <$> force expr
 expr :: Lazy (P.Parser Char (Cofree Expr Unit))
 expr = defer \_ -> force absLevel
   where
-  absLevel = defer \_ -> force abs <|> force let_ <|> force appLevel
+  absLevel = defer \_ -> force abs <|> force let_ <|> force fix <|> force appLevel
     where
     abs = defer \_ -> do
       lLambda
@@ -37,6 +37,12 @@ expr = defer \_ -> force absLevel
       lIn
       e2 <- force absLevel
       pure $ mkCofree unit (ELet x e1 e2)
+    fix = defer \_ -> do
+      lFix
+      x <- lIdent
+      lPeriod
+      e <- force absLevel
+      pure $ mkCofree unit (EFix x e)
 
   appLevel = defer \_ -> unsafePartial do
     (e : es) <- P.many1 (force varLevel)
@@ -60,6 +66,9 @@ lLet = lexeme $ void (C.char 'L' *> C.char 'e' *> C.char 't')
 
 lIn :: P.Parser Char Unit
 lIn = lexeme $ void (C.char 'I' *> C.char 'n')
+
+lFix :: P.Parser Char Unit
+lFix = lexeme $ void ((C.char 'F' *> C.char 'i' *> C.char 'x') <|> C.char 'Μ')
 
 lIdent :: P.Parser Char String
 lIdent = lexeme $ C.many1 (C.lower <|> C.char '_')

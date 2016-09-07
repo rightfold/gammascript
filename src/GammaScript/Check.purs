@@ -114,3 +114,11 @@ infer' = \γ e -> localStack e (go γ (tail e))
         γ'' = Map.insert x τ1' γ'
     {subst: s2, type: τ2} <- infer' γ'' e2
     pure {subst: s1 `composeSubst` s2, type: τ2}
+  go γ (EFix x e) = do
+    φ <- freshTVar
+    let γ' = Map.delete x γ
+        γ'' = Map.insert x (Scheme Set.empty φ) γ'
+    {subst: s1, type: τ} <- infer' γ'' e
+    s2 <- unify φ τ
+    pure {subst: s1 `composeSubst` s2, type: τ}
+    checkError $ "Μ not safe!"

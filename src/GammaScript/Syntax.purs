@@ -18,12 +18,14 @@ data Expr a
   | EApp a a
   | EAbs String a
   | ELet String a a
+  | EFix String a
 
 instance functorExpr :: Functor Expr where
   map _ (EVar n) = EVar n
   map f (EApp e1 e2) = EApp (f e1) (f e2)
   map f (EAbs x e) = EAbs x (f e)
   map f (ELet x e1 e2) = ELet x (f e1) (f e2)
+  map f (EFix x e) = EFix x (f e)
 
 
 prettyExpr :: forall a. Cofree Expr a -> String
@@ -39,9 +41,12 @@ prettyExpr = tail >>> go
           safeL (EApp _ _) = true
           safeL (EAbs _ _) = false
           safeL (ELet _ _ _) = false
+          safeL (EFix _ _) = false
           safeR (EVar _) = true
           safeR (EApp _ _) = false
           safeR (EAbs _ _) = true
           safeR (ELet _ _ _) = true
+          safeR (EFix _ _) = true
   go (EAbs x e) = "Λ" <> x <> ". " <> go (tail e)
   go (ELet x e1 e2) = "Let " <> x <> " = " <> go (tail e1) <> " In " <> go (tail e2)
+  go (EFix x e) = "Μ" <> x <> ". " <> go (tail e)

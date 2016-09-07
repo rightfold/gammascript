@@ -27,6 +27,7 @@ main = do
   example "(Λx. x) (Λx. x)"
   example "Let x = Λx. x In x x"
   example "Λf. Λx. f (f x)"
+  example "Μf. f (Λx. x)"
 
   where example s =
           case parse (force expr <* eof) (stream (toCharArray s)) of
