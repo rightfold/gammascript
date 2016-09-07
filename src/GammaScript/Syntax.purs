@@ -1,11 +1,16 @@
 module GammaScript.Syntax
-( Expr(..)
+( TopLevel(..)
+
+, Expr(..)
 
 , prettyExpr
 ) where
 
 import Control.Comonad.Cofree (Cofree, tail)
 import Prelude
+
+
+data TopLevel a = TopLevel (Cofree Expr a)
 
 
 data Expr a
@@ -38,5 +43,5 @@ prettyExpr = tail >>> go
           safeR (EApp _ _) = false
           safeR (EAbs _ _) = true
           safeR (ELet _ _ _) = true
-  go (EAbs x e) = "λ" <> x <> ". " <> go (tail e)
-  go (ELet x e1 e2) = "let " <> x <> " = " <> go (tail e1) <> " in " <> go (tail e2)
+  go (EAbs x e) = "Λ" <> x <> ". " <> go (tail e)
+  go (ELet x e1 e2) = "Let " <> x <> " = " <> go (tail e1) <> " In " <> go (tail e2)

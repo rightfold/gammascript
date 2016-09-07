@@ -2,31 +2,37 @@ module Main
 ( main
 ) where
 
-import Control.Comonad.Cofree (mkCofree)
 import Control.Monad.Eff.Console (log)
+import Data.Lazy (force)
 import Data.Map as Map
 import Data.Either (Either(..))
+import Data.Eulalie.Error (print)
+import Data.Eulalie.Parser (eof, parse)
+import Data.Eulalie.Result (ParseResult(..))
+import Data.Eulalie.Stream (stream)
+import Data.String (toCharArray)
 import GammaScript.Check (infer, runCheck)
-import GammaScript.Syntax (Expr(..), prettyExpr)
+import GammaScript.Parse (expr)
+import GammaScript.Syntax (prettyExpr)
 import GammaScript.Type (prettyScheme)
 import Prelude
 
 main = do
-  let x = cf (EVar "x")
-      f = cf (EVar "f")
+  example "x"
+  example "Λx. x"
+  example "\\x. x"
+  example "Λx. Λy. x"
+  example "Λf. (Λx. f (x x)) (Λx. f (x x))"
+  example "Λx. x x"
+  example "(Λx. x) (Λx. x)"
+  example "Let x = Λx. x In x x"
+  example "Λf. Λx. f (f x)"
 
-  example $ x
-  example $ cf (EAbs "x" x)
-  example $ cf (EAbs "x" (cf (EAbs "y" x)))
-  example $ cf (EAbs "f" (cf (EApp (cf (EAbs "x" (cf (EApp f (cf (EApp x x)))))) (cf (EAbs "x" (cf (EApp f (cf (EApp x x)))))))))
-  example $ cf (EAbs "x" (cf (EApp x x)))
-  example $ cf (EApp (cf (EAbs "x" x)) (cf (EAbs "x" x)))
-  example $ cf (ELet "x" (cf (EAbs "x" x)) (cf (EApp x x)))
-  example $ cf (EAbs "f" (cf (EAbs "x" (cf (EApp f (cf (EApp f x)))))))
-
-  where example e = do
-          log $ prettyExpr e
-          case runCheck (infer Map.empty e) of
-            Left  e -> log $ "type error: " <> e
-            Right τ -> log $ "  : " <> prettyScheme τ
-        cf = mkCofree unit
+  where example s =
+          case parse (force expr <* eof) (stream (toCharArray s)) of
+            Error e -> log $ "parse error: " <> print e
+            Success {value: e} -> do
+              log $ prettyExpr e
+              case runCheck (infer Map.empty e) of
+                Left er -> log $ "type error: " <> er
+                Right τ -> log $ "  : " <> prettyScheme τ
