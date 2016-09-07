@@ -14,6 +14,12 @@ data Expr a
   | EAbs String a
   | ELet String a a
 
+instance functorExpr :: Functor Expr where
+  map _ (EVar n) = EVar n
+  map f (EApp e1 e2) = EApp (f e1) (f e2)
+  map f (EAbs x e) = EAbs x (f e)
+  map f (ELet x e1 e2) = ELet x (f e1) (f e2)
+
 
 prettyExpr :: forall a. Cofree Expr a -> String
 prettyExpr = tail >>> go

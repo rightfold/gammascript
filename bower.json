@@ -4,6 +4,7 @@
     "purescript-console": "^1.0.0",
     "purescript-arrays": "^1.1.0",
     "purescript-strings": "^1.1.0",
-    "purescript-free": "^1.2.0"
+    "purescript-free": "^1.2.0",
+    "purescript-lists": "^1.0.1"
   }
 }

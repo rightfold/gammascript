@@ -27,6 +27,6 @@ main = do
   where example e = do
           log $ prettyExpr e
           case runCheck (infer Map.empty e) of
-            Left  e -> log $ "  : (type error: " <> e <> ")"
+            Left  e -> log $ "type error: " <> e
             Right τ -> log $ "  : " <> prettyScheme τ
         cf = mkCofree unit
