@@ -4,30 +4,33 @@ module GammaScript.Syntax
 , prettyExpr
 ) where
 
+import Control.Comonad.Cofree (Cofree, tail)
 import Prelude
 
 
-data Expr
+data Expr a
   = EVar String
-  | EApp Expr Expr
-  | EAbs String Expr
-  | ELet String Expr Expr
+  | EApp a a
+  | EAbs String a
+  | ELet String a a
 
 
-prettyExpr :: Expr -> String
-prettyExpr (EVar n) = n
-prettyExpr (EApp e1 e2) = e1' <> " " <> e2'
-  where e1' | safeL e1  =        prettyExpr e1
-            | otherwise = "(" <> prettyExpr e1 <> ")"
-        e2' | safeR e2  =        prettyExpr e2
-            | otherwise = "(" <> prettyExpr e2 <> ")"
-        safeL (EVar _) = true
-        safeL (EApp _ _) = true
-        safeL (EAbs _ _) = false
-        safeL (ELet _ _ _) = false
-        safeR (EVar _) = true
-        safeR (EApp _ _) = false
-        safeR (EAbs _ _) = true
-        safeR (ELet _ _ _) = true
-prettyExpr (EAbs x e) = "λ" <> x <> ". " <> prettyExpr e
-prettyExpr (ELet x e1 e2) = "let " <> x <> " = " <> prettyExpr e1 <> " in " <> prettyExpr e2
+prettyExpr :: forall a. Cofree Expr a -> String
+prettyExpr = tail >>> go
+  where
+  go (EVar n) = n
+  go (EApp e1 e2) = e1' <> " " <> e2'
+    where e1' | safeL (tail e1) =        go (tail e1)
+              | otherwise       = "(" <> go (tail e1) <> ")"
+          e2' | safeR (tail e2) =        go (tail e2)
+              | otherwise       = "(" <> go (tail e2) <> ")"
+          safeL (EVar _) = true
+          safeL (EApp _ _) = true
+          safeL (EAbs _ _) = false
+          safeL (ELet _ _ _) = false
+          safeR (EVar _) = true
+          safeR (EApp _ _) = false
+          safeR (EAbs _ _) = true
+          safeR (ELet _ _ _) = true
+  go (EAbs x e) = "λ" <> x <> ". " <> go (tail e)
+  go (ELet x e1 e2) = "let " <> x <> " = " <> go (tail e1) <> " in " <> go (tail e2)

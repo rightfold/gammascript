@@ -12,6 +12,7 @@ module GammaScript.Check
 , infer
 ) where
 
+import Control.Comonad.Cofree (Cofree, tail)
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.State.Class as State
 import Control.Monad.State.Trans (StateT, evalStateT)
@@ -68,31 +69,33 @@ solve n τ
   | n `Set.member` freeTVars τ = throwError "infinite type"
   | otherwise = pure $ Map.singleton n τ
 
-infer :: Γ -> Expr -> Check Scheme
+infer :: forall a. Γ -> Cofree Expr a -> Check Scheme
 infer γ e = do
   {subst: s, type: τ} <- infer' γ e
   pure $ generalize γ (subst s τ)
 
-infer' :: Γ -> Expr -> Check {subst :: Map String Type, type :: Type}
-infer' γ (EVar n) = case Map.lookup n γ of
-  Just τ -> {subst: Map.empty :: Map String Type, type: _} <$> instantiate τ
-  Nothing -> throwError $ "unknown: " <> n
-infer' γ (EApp e1 e2) = do
-  ρ <- freshTVar
-  {subst: s1, type: τ1} <- infer' γ e1
-  {subst: s2, type: τ2} <- infer' (map (subst s1) γ) e2
-  s3 <- unify (subst s2 τ1) (TFun τ2 ρ)
-  pure {subst: s3 `composeSubst` s2 `composeSubst` s1, type: subst s3 ρ}
-infer' γ (EAbs x e) = do
-  π <- freshTVar
-  let γ' = Map.delete x γ
-      γ'' = Map.insert x (Scheme Set.empty π) γ'
-  {subst: s, type: τ} <- infer' γ'' e
-  pure {subst: s, type: TFun (subst s π) τ}
-infer' γ (ELet x e1 e2) = do
-  {subst: s1, type: τ1} <- infer' γ e1
-  let γ' = Map.delete x γ
-      τ1' = generalize (map (subst s1) γ) τ1
-      γ'' = Map.insert x τ1' γ'
-  {subst: s2, type: τ2} <- infer' γ'' e2
-  pure {subst: s1 `composeSubst` s2, type: τ2}
+infer' :: forall a. Γ -> Cofree Expr a -> Check {subst :: Map String Type, type :: Type}
+infer' = \γ e -> go γ (tail e)
+  where
+  go γ (EVar n) = case Map.lookup n γ of
+    Just τ -> {subst: Map.empty :: Map String Type, type: _} <$> instantiate τ
+    Nothing -> throwError $ "unknown: " <> n
+  go γ (EApp e1 e2) = do
+    ρ <- freshTVar
+    {subst: s1, type: τ1} <- go γ (tail e1)
+    {subst: s2, type: τ2} <- go (map (subst s1) γ) (tail e2)
+    s3 <- unify (subst s2 τ1) (TFun τ2 ρ)
+    pure {subst: s3 `composeSubst` s2 `composeSubst` s1, type: subst s3 ρ}
+  go γ (EAbs x e) = do
+    π <- freshTVar
+    let γ' = Map.delete x γ
+        γ'' = Map.insert x (Scheme Set.empty π) γ'
+    {subst: s, type: τ} <- go γ'' (tail e)
+    pure {subst: s, type: TFun (subst s π) τ}
+  go γ (ELet x e1 e2) = do
+    {subst: s1, type: τ1} <- go γ (tail e1)
+    let γ' = Map.delete x γ
+        τ1' = generalize (map (subst s1) γ) τ1
+        γ'' = Map.insert x τ1' γ'
+    {subst: s2, type: τ2} <- go γ'' (tail e2)
+    pure {subst: s1 `composeSubst` s2, type: τ2}
