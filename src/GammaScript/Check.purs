@@ -121,23 +121,20 @@ infer' = \γ e -> localStack e (go γ (tail e))
     pure {subst: s3 `composeSubst` s2 `composeSubst` s1, type: subst s3 ρ}
   go γ (EAbs x e) = do
     π <- freshTVar
-    let γ' = Map.delete x γ
-        γ'' = Map.insert x (Scheme Set.empty π) γ'
-    {subst: s, type: τ} <- infer' γ'' e
+    let γ' = Map.insert x (Scheme Set.empty π) γ
+    {subst: s, type: τ} <- infer' γ' e
     pure {subst: s, type: TFun (subst s π) τ}
   go γ (ELet x e1 e2) = do
     {subst: s1, type: τ1} <- infer' γ e1
-    let γ' = Map.delete x γ
-        τ1' = generalize (map (subst s1) γ) τ1
-        γ'' = Map.insert x τ1' γ'
-    {subst: s2, type: τ2} <- infer' γ'' e2
+    let τ1' = generalize (map (subst s1) γ) τ1
+        γ' = Map.insert x τ1' γ
+    {subst: s2, type: τ2} <- infer' γ' e2
     pure {subst: s1 `composeSubst` s2, type: τ2}
   go γ (EFix x e) = do
     when (x `Set.member` freeEVars e) $
       checkError $ "cannot prove that expression terminates, because\n  " <> x <> "\nappears free in\n  " <> prettyExpr e
     φ <- freshTVar
-    let γ' = Map.delete x γ
-        γ'' = Map.insert x (Scheme Set.empty φ) γ'
-    {subst: s1, type: τ} <- infer' γ'' e
+    let γ' = Map.insert x (Scheme Set.empty φ) γ
+    {subst: s1, type: τ} <- infer' γ' e
     s2 <- unify φ τ
     pure {subst: s1 `composeSubst` s2, type: τ}
