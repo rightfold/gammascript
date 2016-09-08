@@ -35,6 +35,7 @@ main = do
   example "Data nat End\nΛx. x"
   example "Data bool\n  | true\n  | false\nEnd\nData unit\n  | unit\nEnd\nΛf. f true false unit"
   example "Data bool\n  | true\n  | false\nEnd\nData unit\n  | unit\nEnd\nΛf. Λg. f (g true) (g unit)"
+  example "Data nat\n  | z\n  | s nat\nEndΛx. s (s (s x))"
 
   where example s = do
           case parse (force topLevel <* eof) (stream (toCharArray s)) of

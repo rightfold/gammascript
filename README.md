@@ -7,12 +7,11 @@ Current features:
 
  - indentation-insignificant syntax,
  - Hindley–Milner type system,
- - sum types,
+ - algebraic data types,
  - Lua code generation.
 
 Near future features:
 
- - product types,
  - pattern matching,
  - primitive recursion.
 

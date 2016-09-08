@@ -64,11 +64,11 @@ check = \γ (TopLevel adts e) ->
   let γ' = foldl registerADT γ adts
    in infer γ' e
   where
-  registerADT γ (ADT name cases) =
-    let τ = (Scheme Set.empty (TCon name))
-     in foldl (registerCase τ) γ (Map.toList cases)
-  registerCase τ γ (Tuple case_ params) =
-    Map.insert case_ τ γ
+  registerADT γ (ADT name ctors) =
+    let τ = (TCon name)
+     in foldl (registerCtor τ) γ (Map.toList ctors)
+  registerCtor τ γ (Tuple ctor params) =
+    Map.insert ctor (Scheme Set.empty (foldl TFun τ params)) γ
 
 
 type Γ = Map String Scheme

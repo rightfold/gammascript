@@ -14,6 +14,7 @@ import Data.List ((:))
 import Data.Map as Map
 import Data.Tuple (Tuple(..), uncurry)
 import GammaScript.Syntax (ADT(..), Expr(..), TopLevel(..))
+import GammaScript.Type (Type(..))
 import Partial.Unsafe (unsafePartial)
 import Prelude
 
@@ -28,7 +29,8 @@ adt = defer \_ -> do
   params <- P.many do
     lPipe
     name <- lIdent
-    pure $ Tuple name []
+    params <- P.many (TCon <$> lIdent)
+    pure $ Tuple name params
   lEnd
   pure $ ADT name (foldr (uncurry Map.insert) Map.empty params)
 

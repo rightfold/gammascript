@@ -18,7 +18,7 @@ import Data.Map as Map
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple (Tuple(..))
-import GammaScript.Type (Type)
+import GammaScript.Type (prettyType, Type)
 import Prelude
 
 
@@ -29,12 +29,13 @@ prettyTopLevel (TopLevel adts e) =
   fold (map (\a -> prettyADT a <> "\n") adts) <> prettyExpr e
 
 
-data ADT = ADT String (Map String (Array Type))
+data ADT = ADT String (Map String (List Type))
 
 prettyADT :: ADT -> String
-prettyADT (ADT n cases) =
-  "Data " <> n <> "\n" <> fold (map case_ (Map.toList cases)) <> "End"
-  where case_ (Tuple ctor params) = "  | " <> ctor <> "\n"
+prettyADT (ADT n ctors) =
+  "Data " <> n <> "\n" <> fold (map ctor (Map.toList ctors)) <> "End"
+  where ctor (Tuple ctor params) = "  | " <> ctor <> fold (map param params) <> "\n"
+        param τ = " " <> prettyType τ
 
 
 data Expr a
