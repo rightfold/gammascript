@@ -33,16 +33,16 @@ import GammaScript.Type (composeSubst, freeTVars, Scheme(..), subst, Type(..))
 import Prelude
 
 
-type Check = ReaderT {stack :: List (Cofree Expr Unit)} (StateT {supply :: Int, subst :: Map String Type} (Either String))
+type Check = ReaderT {stack :: List (Cofree Expr Unit)} (StateT {supply :: Int} (Either String))
 
 runCheck :: forall a. Check a -> Either String a
 runCheck chk = evalStateT (runReaderT chk r) s
-  where s = {supply: 0, subst: Map.empty}
+  where s = {supply: 0}
         r = {stack: Nil}
 
 freshTVar :: Check Type
 freshTVar = do
-  i <- _.supply <$> (State.get :: Check {supply :: Int, subst :: Map String Type})
+  i <- _.supply <$> (State.get :: Check {supply :: Int})
   State.modify \s -> s { supply = s.supply + 1 }
   pure $ TVar ("a" <> show i)
 
