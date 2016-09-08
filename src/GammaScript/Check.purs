@@ -4,6 +4,8 @@ module GammaScript.Check
 , freshTVar
 , checkError
 
+, check
+
 , Γ
 
 , generalize
@@ -20,7 +22,7 @@ import Control.Monad.Reader.Trans (ReaderT, runReaderT)
 import Control.Monad.State.Class as State
 import Control.Monad.State.Trans (StateT, evalStateT)
 import Data.Either (Either)
-import Data.Foldable (fold)
+import Data.Foldable (fold, foldl)
 import Data.List ((:), List(..))
 import Data.List as List
 import Data.Map (Map)
@@ -28,8 +30,9 @@ import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Set as Set
 import Data.Traversable (traverse)
-import GammaScript.Syntax (Expr(..), freeEVars, prettyExpr)
-import GammaScript.Type (composeSubst, freeTVars, Scheme(..), subst, Type(..))
+import Data.Tuple (Tuple(..))
+import GammaScript.Syntax (ADT(..), Expr(..), freeEVars, prettyExpr, TopLevel(..))
+import GammaScript.Type (composeSubst, freeTVars, prettyType, Scheme(..), subst, Type(..))
 import Prelude
 
 
@@ -56,6 +59,18 @@ localStack :: forall a r. Cofree Expr a -> Check r -> Check r
 localStack e chk = local (\r -> r {stack = void e : r.stack}) chk
 
 
+check :: forall a. Γ -> TopLevel a -> Check Scheme
+check = \γ (TopLevel adts e) ->
+  let γ' = foldl registerADT γ adts
+   in infer γ' e
+  where
+  registerADT γ (ADT name cases) =
+    let τ = (Scheme Set.empty (TCon name))
+     in foldl (registerCase τ) γ (Map.toList cases)
+  registerCase τ γ (Tuple case_ params) =
+    Map.insert case_ τ γ
+
+
 type Γ = Map String Scheme
 
 
@@ -77,6 +92,9 @@ unify (TFun τ1 σ1) (TFun τ2 σ2) = do
   s1 <- unify τ1 τ2
   s2 <- unify (subst s1 σ1) (subst s1 σ2)
   pure $ s1 `composeSubst` s2
+unify (TCon τ) (TCon σ)
+  | τ == σ = pure Map.empty
+unify τ σ = checkError $ "type mismatch\n  " <> prettyType τ <> "\nvs\n  " <> prettyType σ
 
 solve :: String -> Type -> Check (Map String Type)
 solve n (TVar m) | n == m = pure Map.empty

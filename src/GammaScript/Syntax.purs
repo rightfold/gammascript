@@ -1,19 +1,40 @@
 module GammaScript.Syntax
 ( TopLevel(..)
+, prettyTopLevel
+
+, ADT(..)
+, prettyADT
 
 , Expr(..)
 , freeEVars
-
 , prettyExpr
 ) where
 
 import Control.Comonad.Cofree (Cofree, tail)
+import Data.Foldable (fold)
+import Data.List (List)
+import Data.Map (Map)
+import Data.Map as Map
 import Data.Set (Set)
 import Data.Set as Set
+import Data.Tuple (Tuple(..))
+import GammaScript.Type (Type)
 import Prelude
 
 
-data TopLevel a = TopLevel (Cofree Expr a)
+data TopLevel a = TopLevel (List ADT) (Cofree Expr a)
+
+prettyTopLevel :: forall a. TopLevel a -> String
+prettyTopLevel (TopLevel adts e) =
+  fold (map (\a -> prettyADT a <> "\n") adts) <> prettyExpr e
+
+
+data ADT = ADT String (Map String (Array Type))
+
+prettyADT :: ADT -> String
+prettyADT (ADT n cases) =
+  "Data " <> n <> "\n" <> fold (map case_ (Map.toList cases)) <> "End"
+  where case_ (Tuple ctor params) = "  | " <> ctor <> "\n"
 
 
 data Expr a
@@ -37,7 +58,6 @@ freeEVars = tail >>> go
         go (EAbs x e) = Set.delete x (freeEVars e)
         go (ELet x e1 e2) = freeEVars e1 <> Set.delete x (freeEVars e2)
         go (EFix x e) = Set.delete x (freeEVars e)
-
 
 prettyExpr :: forall a. Cofree Expr a -> String
 prettyExpr = tail >>> go

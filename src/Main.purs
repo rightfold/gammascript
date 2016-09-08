@@ -11,9 +11,9 @@ import Data.Eulalie.Parser (eof, parse)
 import Data.Eulalie.Result (ParseResult(..))
 import Data.Eulalie.Stream (stream)
 import Data.String (toCharArray)
-import GammaScript.Check (infer, runCheck)
-import GammaScript.Parse (expr)
-import GammaScript.Syntax (prettyExpr)
+import GammaScript.Check (check, runCheck)
+import GammaScript.Parse (topLevel)
+import GammaScript.Syntax (prettyTopLevel)
 import GammaScript.Type (prettyScheme)
 import Prelude
 
@@ -30,12 +30,15 @@ main = do
   example "Μf. f (Λx. x)"
   example "Μf. Λf. f"
   example "Let x = Λa. a In Μf. x"
+  example "Data nat End\nΛx. x"
+  example "Data bool\n  | true\n  | false\nEnd\nΛf. f true false"
 
-  where example s =
-          case parse (force expr <* eof) (stream (toCharArray s)) of
+  where example s = do
+          case parse (force topLevel <* eof) (stream (toCharArray s)) of
             Error e -> log $ "parse error: " <> print e
-            Success {value: e} -> do
-              log $ prettyExpr e
-              case runCheck (infer Map.empty e) of
+            Success {value: tl} -> do
+              log $ prettyTopLevel tl
+              case runCheck (check Map.empty tl) of
                 Left er -> log $ "type error: " <> er
                 Right τ -> log $ "  : " <> prettyScheme τ
+          log ""

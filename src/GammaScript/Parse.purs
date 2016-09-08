@@ -1,5 +1,6 @@
 module GammaScript.Parse
 ( topLevel
+, adt
 , expr
 ) where
 
@@ -7,16 +8,29 @@ import Control.Alt ((<|>))
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Data.Eulalie.Char as C
 import Data.Eulalie.Parser as P
-import Data.Foldable (foldl)
+import Data.Foldable (foldl, foldr)
 import Data.Lazy (defer, force, Lazy)
 import Data.List ((:))
-import GammaScript.Syntax (Expr(..), TopLevel(..))
+import Data.Map as Map
+import Data.Tuple (Tuple(..), uncurry)
+import GammaScript.Syntax (ADT(..), Expr(..), TopLevel(..))
 import Partial.Unsafe (unsafePartial)
 import Prelude
 
 
 topLevel :: Lazy (P.Parser Char (TopLevel Unit))
-topLevel = defer \_ -> TopLevel <$> force expr
+topLevel = defer \_ -> TopLevel <$> P.many (force adt) <*> force expr
+
+adt :: Lazy (P.Parser Char ADT)
+adt = defer \_ -> do
+  lADT
+  name <- lIdent
+  params <- P.many do
+    lPipe
+    name <- lIdent
+    pure $ Tuple name []
+  lEnd
+  pure $ ADT name (foldr (uncurry Map.insert) Map.empty params)
 
 expr :: Lazy (P.Parser Char (Cofree Expr Unit))
 expr = defer \_ -> force absLevel
@@ -58,6 +72,12 @@ lexeme :: forall a. P.Parser Char a -> P.Parser Char a
 lexeme p = P.many space *> p <* P.many space
   where space = C.space
 
+lADT :: P.Parser Char Unit
+lADT = lexeme $ void (C.char 'D' *> C.char 'a' *> C.char 't' *> C.char 'a')
+
+lEnd :: P.Parser Char Unit
+lEnd = lexeme $ void (C.char 'E' *> C.char 'n' *> C.char 'd')
+
 lLambda :: P.Parser Char Unit
 lLambda = lexeme $ void ((C.char 'F' *> C.char 'u' *> C.char 'n') <|> C.char 'Λ')
 
@@ -78,6 +98,9 @@ lPeriod = lexeme $ void (C.char '.')
 
 lEq :: P.Parser Char Unit
 lEq = lexeme $ void (C.char '=')
+
+lPipe :: P.Parser Char Unit
+lPipe = lexeme $ void (C.char '|')
 
 lLParen :: P.Parser Char Unit
 lLParen = lexeme $ void (C.char '(')

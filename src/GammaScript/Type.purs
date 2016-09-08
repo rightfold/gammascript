@@ -25,6 +25,7 @@ import Prelude
 data Type
   = TVar String
   | TFun Type Type
+  | TCon String
 
 data Scheme = Scheme (Set String) Type
 
@@ -36,8 +37,10 @@ class Subst a where
 instance substType :: Subst Type where
   freeTVars (TVar n)   = Set.singleton n
   freeTVars (TFun τ σ) = freeTVars τ <> freeTVars σ
+  freeTVars (TCon _) = Set.empty
   subst s (TVar n)   = fromMaybe (TVar n) (Map.lookup n s)
   subst s (TFun τ σ) = TFun (subst s τ) (subst s σ)
+  subst _ (TCon n) = TCon n
 
 instance substScheme :: Subst Scheme where
   freeTVars (Scheme quantis τ) = freeTVars τ `Set.difference` quantis
@@ -56,8 +59,11 @@ prettyType (TFun τ σ) = τ' <> " → " <> σ'
            | otherwise = "(" <> prettyType σ <> ")"
         safeL (TVar _) = true
         safeL (TFun _ _) = false
+        safeL (TCon _) = true
         safeR (TVar _) = true
         safeR (TFun _ _) = true
+        safeR (TCon _) = true
+prettyType (TCon n) = n
 
 prettyScheme :: Scheme -> String
 prettyScheme (Scheme quantis τ)
