@@ -65,18 +65,17 @@ check = \γ (TopLevel adts e) ->
    in infer γ' e
   where
   registerADT γ (ADT name ctors) =
-    let τ = (TCon name)
-     in foldl (registerCtor τ) γ (Map.toList ctors)
-  registerCtor τ γ (Tuple ctor params) =
-    Map.insert ctor (Scheme Set.empty (foldl TFun τ params)) γ
+    foldl (registerCtor name) γ (Map.toList ctors)
+  registerCtor n γ (Tuple ctor params) =
+    Map.insert ctor {type: Scheme Set.empty (foldl TFun (TCon n) params), adt: Just n} γ
 
 
-type Γ = Map String Scheme
+type Γ = Map String {type :: Scheme, adt :: Maybe String}
 
 
 generalize :: Γ -> Type -> Scheme
 generalize γ τ = Scheme qs τ
-  where qs = freeTVars τ `Set.difference` fold (map freeTVars γ)
+  where qs = freeTVars τ `Set.difference` fold (map (freeTVars <<< _.type) γ)
 
 instantiate :: Scheme -> Check Type
 instantiate (Scheme quantis τ) = do
@@ -111,30 +110,31 @@ infer' :: forall a. Γ -> Cofree Expr a -> Check {subst :: Map String Type, type
 infer' = \γ e -> localStack e (go γ (tail e))
   where
   go γ (EVar n) = case Map.lookup n γ of
-    Just τ -> {subst: Map.empty :: Map String Type, type: _} <$> instantiate τ
+    Just {type: τ} ->
+      {subst: Map.empty :: Map String Type, type: _} <$> instantiate τ
     Nothing -> checkError $ "unknown: " <> n
   go γ (EApp e1 e2) = do
     ρ <- freshTVar
     {subst: s1, type: τ1} <- infer' γ e1
-    {subst: s2, type: τ2} <- infer' (map (subst s1) γ) e2
+    {subst: s2, type: τ2} <- infer' (map (\γ_ -> γ_ {type = subst s1 γ_.type}) γ) e2
     s3 <- unify (subst s2 τ1) (TFun τ2 ρ)
     pure {subst: s3 `composeSubst` s2 `composeSubst` s1, type: subst s3 ρ}
   go γ (EAbs x e) = do
     π <- freshTVar
-    let γ' = Map.insert x (Scheme Set.empty π) γ
+    let γ' = Map.insert x {type: Scheme Set.empty π, adt: Nothing} γ
     {subst: s, type: τ} <- infer' γ' e
     pure {subst: s, type: TFun (subst s π) τ}
   go γ (ELet x e1 e2) = do
     {subst: s1, type: τ1} <- infer' γ e1
-    let τ1' = generalize (map (subst s1) γ) τ1
-        γ' = Map.insert x τ1' γ
+    let τ1' = generalize (map (\γ_ -> γ_ {type = subst s1 γ_.type}) γ) τ1
+        γ' = Map.insert x {type: τ1', adt: Nothing} γ
     {subst: s2, type: τ2} <- infer' γ' e2
     pure {subst: s1 `composeSubst` s2, type: τ2}
   go γ (EFix x e) = do
     when (x `Set.member` freeEVars e) $
       checkError $ "cannot prove that expression terminates, because\n  " <> x <> "\nappears free in\n  " <> prettyExpr e
     φ <- freshTVar
-    let γ' = Map.insert x (Scheme Set.empty φ) γ
+    let γ' = Map.insert x {type: Scheme Set.empty φ, adt: Nothing} γ
     {subst: s1, type: τ} <- infer' γ' e
     s2 <- unify φ τ
     pure {subst: s1 `composeSubst` s2, type: τ}

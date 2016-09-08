@@ -77,6 +77,23 @@ main = do
     In
     add
   """
+  example """
+    Data bool
+      | true
+      | false
+    End
+    Data nat
+      | z
+      | s nat
+    End
+    Let is_z = Λa.
+      Match a
+        | z. true
+        | s x. false
+      End
+    In
+    is_z
+  """
 
   where example s = do
           case parse (force topLevel <* eof) (stream (toCharArray s)) of
