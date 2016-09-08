@@ -28,7 +28,7 @@ import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Set as Set
 import Data.Traversable (traverse)
-import GammaScript.Syntax (Expr(..), prettyExpr)
+import GammaScript.Syntax (Expr(..), freeEVars, prettyExpr)
 import GammaScript.Type (composeSubst, freeTVars, Scheme(..), subst, Type(..))
 import Prelude
 
@@ -115,10 +115,11 @@ infer' = \γ e -> localStack e (go γ (tail e))
     {subst: s2, type: τ2} <- infer' γ'' e2
     pure {subst: s1 `composeSubst` s2, type: τ2}
   go γ (EFix x e) = do
+    when (x `Set.member` freeEVars e) $
+      checkError $ "cannot prove that expression terminates, because\n  " <> x <> "\nappears free in\n  " <> prettyExpr e
     φ <- freshTVar
     let γ' = Map.delete x γ
         γ'' = Map.insert x (Scheme Set.empty φ) γ'
     {subst: s1, type: τ} <- infer' γ'' e
     s2 <- unify φ τ
     pure {subst: s1 `composeSubst` s2, type: τ}
-    checkError $ "Μ not safe!"

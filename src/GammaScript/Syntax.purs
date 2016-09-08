@@ -2,11 +2,14 @@ module GammaScript.Syntax
 ( TopLevel(..)
 
 , Expr(..)
+, freeEVars
 
 , prettyExpr
 ) where
 
 import Control.Comonad.Cofree (Cofree, tail)
+import Data.Set (Set)
+import Data.Set as Set
 import Prelude
 
 
@@ -26,6 +29,14 @@ instance functorExpr :: Functor Expr where
   map f (EAbs x e) = EAbs x (f e)
   map f (ELet x e1 e2) = ELet x (f e1) (f e2)
   map f (EFix x e) = EFix x (f e)
+
+freeEVars :: forall a. Cofree Expr a -> Set String
+freeEVars = tail >>> go
+  where go (EVar n) = Set.singleton n
+        go (EApp e1 e2) = freeEVars e1 <> freeEVars e2
+        go (EAbs x e) = Set.delete x (freeEVars e)
+        go (ELet x e1 e2) = freeEVars e1 <> Set.delete x (freeEVars e2)
+        go (EFix x e) = Set.delete x (freeEVars e)
 
 
 prettyExpr :: forall a. Cofree Expr a -> String
