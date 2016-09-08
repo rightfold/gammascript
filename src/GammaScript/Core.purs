@@ -25,3 +25,4 @@ fromExpr = tail >>> go
                 f  = CVar "f"
                 g  = CVar "g"
                 z  = CVar "z"
+        go (EMat _ _) = CAbs "N" (CAbs "Y" (CAbs "I" (CVar "x")))

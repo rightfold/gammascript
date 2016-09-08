@@ -34,7 +34,7 @@ data ADT = ADT String (Map String (List Type))
 prettyADT :: ADT -> String
 prettyADT (ADT n ctors) =
   "Data " <> n <> "\n" <> fold (map ctor (Map.toList ctors)) <> "End"
-  where ctor (Tuple ctor params) = "  | " <> ctor <> fold (map param params) <> "\n"
+  where ctor (Tuple ctorN params) = "  | " <> ctorN <> fold (map param params) <> "\n"
         param τ = " " <> prettyType τ
 
 
@@ -44,6 +44,7 @@ data Expr a
   | EAbs String a
   | ELet String a a
   | EFix String a
+  | EMat a (Map String {fields :: List String, value :: a})
 
 instance functorExpr :: Functor Expr where
   map _ (EVar n) = EVar n
@@ -51,6 +52,7 @@ instance functorExpr :: Functor Expr where
   map f (EAbs x e) = EAbs x (f e)
   map f (ELet x e1 e2) = ELet x (f e1) (f e2)
   map f (EFix x e) = EFix x (f e)
+  map f (EMat e cs) = EMat (f e) (map (\c -> c { value = f c.value }) cs)
 
 freeEVars :: forall a. Cofree Expr a -> Set String
 freeEVars = tail >>> go
@@ -59,6 +61,9 @@ freeEVars = tail >>> go
         go (EAbs x e) = Set.delete x (freeEVars e)
         go (ELet x e1 e2) = freeEVars e1 <> Set.delete x (freeEVars e2)
         go (EFix x e) = Set.delete x (freeEVars e)
+        go (EMat e cs) = freeEVars e <> fold (map freeCVars cs)
+          where freeCVars {fields, value} =
+                  freeEVars value `Set.difference` Set.fromFoldable fields
 
 prettyExpr :: forall a. Cofree Expr a -> String
 prettyExpr = tail >>> go
@@ -74,11 +79,17 @@ prettyExpr = tail >>> go
           safeL (EAbs _ _) = false
           safeL (ELet _ _ _) = false
           safeL (EFix _ _) = false
+          safeL (EMat _ _) = true
           safeR (EVar _) = true
           safeR (EApp _ _) = false
           safeR (EAbs _ _) = true
           safeR (ELet _ _ _) = true
           safeR (EFix _ _) = true
+          safeR (EMat _ _) = true
   go (EAbs x e) = "Λ" <> x <> ". " <> go (tail e)
   go (ELet x e1 e2) = "Let " <> x <> " = " <> go (tail e1) <> " In " <> go (tail e2)
   go (EFix x e) = "Μ" <> x <> ". " <> go (tail e)
+  go (EMat e cs) = "Match " <> go (tail e) <> "\n" <> fold cs' <> "End"
+    where cs' = Map.toList cs # map \(Tuple ctor {fields, value}) ->
+                  let fields' = fold (map (" " <> _) fields)
+                   in "  | " <> ctor <> fields' <> ". " <> go (tail value) <> "\n"

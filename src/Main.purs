@@ -32,10 +32,51 @@ main = do
   example "Μf. f (Λx. x)"
   example "Μf. Λf. f"
   example "Let x = Λa. a In Μf. x"
-  example "Data nat End\nΛx. x"
-  example "Data bool\n  | true\n  | false\nEnd\nData unit\n  | unit\nEnd\nΛf. f true false unit"
-  example "Data bool\n  | true\n  | false\nEnd\nData unit\n  | unit\nEnd\nΛf. Λg. f (g true) (g unit)"
-  example "Data nat\n  | z\n  | s nat\nEndΛx. s (s (s x))"
+  example """
+    Data void
+    End
+    Λx. x
+  """
+  example """
+    Data bool
+      | true
+      | false
+    End
+    Data unit
+      | unit
+    End
+    Λf. f true false unit
+  """
+  example """
+    Data bool
+      | true
+      | false
+    End
+    Data unit
+      | unit
+    End
+    Λf. Λg. f (g true) (g unit)
+  """
+  example """
+    Data nat
+      | z
+      | s nat
+    End
+    Λx. s (s (s x))
+  """
+  example """
+    Data nat
+      | z
+      | s nat
+    End
+    Let add = Μadd. Λa.
+      Match a
+        | z. Λb. b
+        | s x. Λb. s (add x b)
+      End
+    In
+    add
+  """
 
   where example s = do
           case parse (force topLevel <* eof) (stream (toCharArray s)) of

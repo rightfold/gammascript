@@ -138,3 +138,4 @@ infer' = \γ e -> localStack e (go γ (tail e))
     {subst: s1, type: τ} <- infer' γ' e
     s2 <- unify φ τ
     pure {subst: s1 `composeSubst` s2, type: τ}
+  go _ (EMat _ _) = checkError "NYI: Match"

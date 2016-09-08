@@ -26,13 +26,13 @@ adt :: Lazy (P.Parser Char ADT)
 adt = defer \_ -> do
   lADT
   name <- lIdent
-  params <- P.many do
+  ctors <- P.many do
     lPipe
-    name <- lIdent
+    ctorN <- lIdent
     params <- P.many (TCon <$> lIdent)
-    pure $ Tuple name params
+    pure $ Tuple ctorN params
   lEnd
-  pure $ ADT name (foldr (uncurry Map.insert) Map.empty params)
+  pure $ ADT name (foldr (uncurry Map.insert) Map.empty ctors)
 
 expr :: Lazy (P.Parser Char (Cofree Expr Unit))
 expr = defer \_ -> force absLevel
@@ -64,10 +64,22 @@ expr = defer \_ -> force absLevel
     (e : es) <- P.many1 (force varLevel)
     pure $ foldl (\e1 e2 -> mkCofree unit (EApp e1 e2)) e es
 
-  varLevel = defer \_ -> force var <|> force paren
+  varLevel = defer \_ -> force var <|> force paren <|> force match
     where
     var = defer \_ -> mkCofree unit <<< EVar <$> lIdent
     paren = defer \_ -> lLParen >>= \_ -> force expr <* lRParen
+    match = defer \_ -> do
+      lMatch
+      e <- force expr
+      cs <- P.many do
+        lPipe
+        ctor <- lIdent
+        fields <- P.many lIdent
+        lPeriod
+        value <- force expr
+        pure (Tuple ctor {fields, value})
+      lEnd
+      pure $ mkCofree unit (EMat e (foldr (uncurry Map.insert) Map.empty cs))
 
 
 lexeme :: forall a. P.Parser Char a -> P.Parser Char a
@@ -79,6 +91,9 @@ lADT = lexeme $ void (C.char 'D' *> C.char 'a' *> C.char 't' *> C.char 'a')
 
 lEnd :: P.Parser Char Unit
 lEnd = lexeme $ void (C.char 'E' *> C.char 'n' *> C.char 'd')
+
+lMatch :: P.Parser Char Unit
+lMatch = lexeme $ void (C.char 'M' *> C.char 'a' *> C.char 't' *> C.char 'c' *> C.char 'h')
 
 lLambda :: P.Parser Char Unit
 lLambda = lexeme $ void ((C.char 'F' *> C.char 'u' *> C.char 'n') <|> C.char 'Λ')
