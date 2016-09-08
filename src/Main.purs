@@ -20,7 +20,7 @@ import Prelude
 main = do
   example "x"
   example "Λx. x"
-  example "\\x. x"
+  example "Fun x. x"
   example "Λx. Λy. x"
   example "Λf. (Λx. f (x x)) (Λx. f (x x))"
   example "Λx. x x"

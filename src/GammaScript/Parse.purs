@@ -59,7 +59,7 @@ lexeme p = P.many space *> p <* P.many space
   where space = C.space
 
 lLambda :: P.Parser Char Unit
-lLambda = lexeme $ void (C.char 'Λ' <|> C.char '\\')
+lLambda = lexeme $ void ((C.char 'F' *> C.char 'u' *> C.char 'n') <|> C.char 'Λ')
 
 lLet :: P.Parser Char Unit
 lLet = lexeme $ void (C.char 'L' *> C.char 'e' *> C.char 't')
