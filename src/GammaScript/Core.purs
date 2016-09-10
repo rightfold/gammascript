@@ -32,7 +32,7 @@ fromTopLevel (TopLevel adts e) = foldr fromADT (fromExpr e) adts
 
 --| Turn an ADT into lambda terms using Church encoding. For example:
 --|
---|     ADT nat
+--|     Data nat
 --|       | z
 --|       | s z
 --|     End
