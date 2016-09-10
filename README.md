@@ -8,7 +8,8 @@ Current features:
  - indentation-insignificant syntax,
  - Hindley–Milner type system,
  - algebraic data types,
- - Lua code generation.
+ - Lua code generation,
+ - PHP code generation.
 
 Near future features:
 

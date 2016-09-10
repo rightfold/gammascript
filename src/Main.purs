@@ -15,6 +15,7 @@ import GammaScript.Check (check, runCheck)
 import GammaScript.Core as Core
 import GammaScript.Lua as Lua
 import GammaScript.Parse (topLevel)
+import GammaScript.PHP as PHP
 import GammaScript.Syntax (prettyTopLevel, TopLevel(..))
 import GammaScript.Type (prettyScheme)
 import Prelude
@@ -109,4 +110,5 @@ main = do
                 Right τ -> do
                   log $ "  : " <> prettyScheme τ
                   log $ "--[[\n" <> Lua.fromCore (Core.fromTopLevel tl) <> "\n--]]"
+                  log $ "/*\n" <> PHP.fromCore (Core.fromTopLevel tl) <> "\n*/"
           log ""
