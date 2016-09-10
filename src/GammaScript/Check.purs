@@ -22,7 +22,7 @@ import Control.Monad.Reader.Trans (ReaderT, runReaderT)
 import Control.Monad.State.Class as State
 import Control.Monad.State.Trans (StateT, evalStateT)
 import Data.Either (Either)
-import Data.Foldable (fold, foldl)
+import Data.Foldable (fold, foldl, foldr)
 import Data.List ((:), List(..))
 import Data.List as List
 import Data.Map (Map)
@@ -67,7 +67,7 @@ check = \γ (TopLevel adts e) ->
   registerADT γ (ADT name ctors) =
     foldl (registerCtor name) γ (Map.toList ctors)
   registerCtor n γ (Tuple ctor params) =
-    Map.insert ctor {type: Scheme Set.empty (foldl TFun (TCon n) params), adt: Just n} γ
+    Map.insert ctor {type: Scheme Set.empty (foldr TFun (TCon n) params), adt: Just n} γ
 
 
 type Γ = Map String {type :: Scheme, adt :: Maybe String}

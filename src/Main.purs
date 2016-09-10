@@ -62,13 +62,6 @@ main = do
       | z
       | s nat
     End
-    Λx. s (s (s x))
-  """
-  example """
-    Data nat
-      | z
-      | s nat
-    End
     Let add = Μadd. Λa.
       Match a
         | z. Λb. b
@@ -94,15 +87,26 @@ main = do
     In
     is_z
   """
+  example """
+    Data nat
+      | z
+      | s nat
+    End
+    Data list
+      | nil
+      | cons nat list
+    End
+    cons z (cons ((Λx. s (s (s x))) z) nil)
+  """
 
   where example s = do
           case parse (force topLevel <* eof) (stream (toCharArray s)) of
             Error e -> log $ "parse error: " <> print e
-            Success {value: tl@(TopLevel _ e)} -> do
+            Success {value: tl} -> do
               log $ prettyTopLevel tl
               case runCheck (check Map.empty tl) of
                 Left er -> log $ "type error: " <> er
                 Right τ -> do
                   log $ "  : " <> prettyScheme τ
-                  log $ "--[[\n" <> Lua.fromCore (Core.fromExpr e) <> "\n--]]"
+                  log $ "--[[\n" <> Lua.fromCore (Core.fromTopLevel tl) <> "\n--]]"
           log ""
